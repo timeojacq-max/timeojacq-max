@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Assistant GEMINI</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        :root {
+            --color-bg-main: #1A1A1A;
+            --color-accent: #A020F0;
+            --color-text-main: #F0F0F0;
+            --color-user-bubble: #3A3A3A;
+            --color-gemini-bubble: #2A2A2A;
+            --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--color-bg-main);
+            color: var(--color-text-main);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 15px;
+            background-color: #252525;
+            border-bottom: 1px solid #3A3A3A;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .header-title {
+            color: var(--color-accent);
+            font-size: 1.5em;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        .header-icon {
+            color: var(--color-accent);
+            font-size: 1.4em;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .header-icon:hover {
+            color: #C080FF;
+        }
+
+        .chat-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px 15px;
+            padding-bottom: 100px;
+            scroll-behavior: smooth;
+        }
+
+        .message-bubble {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 20px;
+            max-width: 85%;
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+
+        .user-message {
+            background-color: var(--color-user-bubble);
+            margin-left: auto;
+            border-top-right-radius: 5px;
+        }
+
+        .gemini-message {
+            background-color: var(--color-gemini-bubble);
+            margin-right: auto;
+            border-top-left-radius: 5px;
+        }
+
+        #loading-message {
+            display: none;
+            color: var(--color-accent);
+            text-align: center;
+            font-style: italic;
+        }
+
+        .input-area {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 15px;
+            background-color: #252525;
+            box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+        }
+
+        #user-input {
+            flex-grow: 1;
+            padding: 12px 20px;
+            border: 2px solid var(--color-accent);
+            border-radius: 30px;
+            background-color: #303030;
+            color: var(--color-text-main);
+            font-size: 1em;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        
+        #user-input::placeholder {
+            color: #999999;
+        }
+
+        #user-input:focus {
+            border-color: #C080FF;
+        }
+
+        #send-button {
+            background-color: var(--color-accent);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            margin-left: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            font-size: 1.2em;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #send-button:hover {
+            background-color: #C080FF;
+        }
+
+        #send-button:active {
+            transform: scale(0.95);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            width: 85%;
+            height: 100%;
+            background-color: #151515;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+            z-index: 100;
+            padding: 20px;
+            transition: transform 0.3s ease-out;
+            overflow-y: auto;
+        }
+
+        .modal.open {
+            transform: translateX(0);
+        }
+        
+        #settings-modal {
+            left: 0;
+            border-right: 3px solid var(--color-accent);
+            transform: translateX(-100%);
+        }
+
+        #history-modal {
+            right: 0;
+            left: auto;
+            border-left: 3px solid var(--color-accent);
+            transform: translateX(100%);
+        }
+
+        .modal h2 {
+            color: var(--color-accent);
+            border-bottom: 2px solid #3A3A3A;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        .modal p {
+            font-size: 0.9em;
+            color: #AAAAAA;
+        }
+
+        .modal button {
+            padding: 10px 20px; 
+            background-color: var(--color-accent); 
+            border: none; 
+            color: white; 
+            border-radius: 15px; 
+            margin-top: 20px;
+        }
+        
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <i class="fas fa-cog header-icon" id="settings-btn"></i>
+        <div class="header-title">GEMINI</div>
+        <i class="fas fa-book-open header-icon" id="history-btn"></i>
+    </header>
+
+    <main class="chat-container" id="chat-container">
+        <div class="message-bubble gemini-message">
+            Bonjour ! Je suis votre assistant Gemini, prêt à converser. Par où souhaitez-vous commencer ?
+        </div>
+        <div id="loading-message">... Gemini est en train de réfléchir ...</div>
+    </main>
+
+    <footer class="input-area">
+        <input type="text" id="user-input" placeholder="Tapez ici..." autocomplete="off">
+        <button id="send-button" aria-label="Envoyer"><i class="fas fa-paper-plane"></i></button>
+    </footer>
+
+    <div id="settings-modal" class="modal">
+        <h2>⚙️ Paramètres</h2>
+        <p>Ceci est votre panneau de paramètres. La logique pour sauvegarder les options viendra plus tard !</p>
+        <p style="text-align:center;"><button onclick="document.getElementById('settings-modal').classList.remove('open')">Fermer</button></p>
+    </div>
+
+    <div id="history-modal" class="modal">
+        <h2>📚 Historique</h2>
+        <p>Ceci est votre panneau d'historique. Chaque conversation sera archivée ici dans le futur.</p>
+        <p style="text-align:center;"><button onclick="document.getElementById('history-modal').classList.remove('open')">Fermer</button></p>
+    </div>
+
+    <script>
+        const API_KEY = "AIzaSyDETxnI_27qYEfUlKU-idA7qYkqSfDZBMU
+"; 
+        
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const loadingMessage = document.getElementById('loading-message');
+        
+        const settingsModal = document.getElementById('settings-modal');
+        const settingsBtn = document.getElementById('settings-btn');
+        const historyModal = document.getElementById('history-modal');
+        const historyBtn = document.getElementById('history-btn');
+
+        settingsBtn.addEventListener('click', () => {
+            settingsModal.classList.toggle('open');
+            historyModal.classList.remove('open');
+        });
+
+        historyBtn.addEventListener('click', () => {
+            historyModal.classList.toggle('open');
+            settingsModal.classList.remove('open');
+        });
+
+        function createMessageBubble(text, sender) {
+            const bubble = document.createElement('div');
+            bubble.classList.add('message-bubble');
+            bubble.classList.add(sender === 'user' ? 'user-message' : 'gemini-message');
+            
+            let htmlText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            htmlText = htmlText.replace(/_([^_]+)_/g, '<em>$1</em>');
+            htmlText = htmlText.replace(/\n/g, '<br>');
+            
+            bubble.innerHTML = htmlText;
+            chatContainer.appendChild(bubble);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            if (!API_KEY) {
+                createMessageBubble("ATTENTION : La clé API est manquante ou vide. Veuillez la trouver dans le code JavaScript et l'insérer entre les guillemets.", 'gemini');
+                return;
+            }
+
+            createMessageBubble(message, 'user');
+            userInput.value = '';
+            loadingMessage.style.display = 'block';
+            
+            userInput.disabled = true;
+            sendButton.disabled = true;
+
+            try {
+                const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + API_KEY;
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ role: "user", parts: [{ text: message }] }],
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erreur API: ${response.status} - ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                let geminiText = "Désolé, je n'ai pas pu générer de réponse.";
+                
+                if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
+                    geminiText = data.candidates[0].content.parts[0].text;
+                } else if (data.error) {
+                    geminiText = `[Erreur Gemini] : ${data.error.message}`;
+                } else {
+                    geminiText = "Une erreur inconnue est survenue lors de la réponse.";
+                }
+
+                createMessageBubble(geminiText, 'gemini');
+
+            } catch (error) {
+                console.error("Erreur de connexion:", error);
+                createMessageBubble(`[Erreur de connexion] : ${error.message}.`, 'gemini');
+            } finally {
+                loadingMessage.style.display = 'none';
+                userInput.disabled = false;
+                sendButton.disabled = false;
+                userInput.focus();
+            }
+        }
+
+        sendButton.addEventListener('click', sendMessage);
+
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
